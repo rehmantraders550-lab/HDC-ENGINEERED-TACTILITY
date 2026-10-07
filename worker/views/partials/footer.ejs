@@ -1,0 +1,27 @@
+  </main>
+  <% if (!path.startsWith('/admin')) { %>
+    <footer class="site-footer">
+      <div class="shell footer-main">
+        <a class="brand" href="/">
+          <span class="brand-mark">H</span>
+          <span>HADI DIGITAL CRAFT<small>PRINT · FINISH · FORM</small></span>
+        </a>
+        <p>Thoughtful print production,<br>reviewed around your brief.</p>
+        <nav class="footer-links">
+          <a href="/services">Services</a>
+          <a href="/finishing">Finishing</a>
+          <a href="/surface-lab">Surface Lab</a>
+          <a href="/about">About</a>
+          <a href="/faq">FAQ</a>
+          <a href="/quote">Start a project ↗</a>
+        </nav>
+      </div>
+      <div class="shell footer-bottom">
+        <span>© <%= new Date().getFullYear() %> Hadi Digital Craft</span>
+        <span>Powered by ORVIA · Review before release</span>
+      </div>
+    </footer>
+  <% } %>
+  <script src="/assets/site.js" defer></script>
+</body>
+</html>

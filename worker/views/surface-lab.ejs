@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow">ORVIA / MATERIAL &amp; APPLICATION REVIEW</p>
+  <h1>Surface <em>Lab.</em></h1>
+  <p class="lead">A material name is only a starting point. Compatibility follows the actual surface, geometry, coating, artwork and intended use.</p>
+</section>
+
+<section class="section shell">
+  <div class="surface-intro">
+    <p>HDC keeps product, material, production route and page configuration as separate records. A material listed here does not guarantee that every object made from it can be printed.</p>
+    <a class="button" href="/quote">Ask about a surface ↗</a>
+  </div>
+  <div class="surface-grid">
+    <% siteContent.surfaces.forEach((surface, i) => { %>
+      <article class="surface-card">
+        <span class="eyebrow">SURFACE / 0<%= i + 1 %></span>
+        <h2><%= surface[0] %></h2>
+        <p><%= surface[1] %></p>
+        <a class="text-link" href="/quote">Request a compatibility review ↗</a>
+      </article>
+    <% }); %>
+  </div>
+  <div class="review-note">
+    <p class="eyebrow">PROCESS CANDIDATES</p>
+    <p>UV printing and UV DTF are distinct processes used across many products. Neither is assigned to a surface or product here without a product-specific approved production profile.</p>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

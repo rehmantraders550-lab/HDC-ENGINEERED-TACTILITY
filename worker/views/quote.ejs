@@ -1,0 +1,95 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow"><span class="index">01</span> PROJECT INTAKE · ORVIA</p>
+  <h1>Tell us what<br>you’re <em>making.</em></h1>
+  <p class="lead">Share the essentials. HDC will review the request and follow up to confirm the production brief and pricing.</p>
+</section>
+
+<section class="quote-wrap shell">
+  <form method="post" action="/quote" class="quote-form" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label class="hp-field" aria-hidden="true">Website
+      <input name="website_url" tabindex="-1" autocomplete="off">
+    </label>
+    <label>Your name
+      <input name="name" required maxlength="120" autocomplete="name">
+    </label>
+    <div class="form-row">
+      <label>Email
+        <input type="email" name="email" required maxlength="190" autocomplete="email">
+      </label>
+      <label>Phone / WhatsApp <span class="optional">optional</span>
+        <input name="phone" maxlength="60" autocomplete="tel">
+      </label>
+    </div>
+    <label>Service <span class="optional">optional</span>
+      <select name="product_id">
+        <option value="">I’m not sure yet</option>
+        <% products.forEach(p => { %>
+          <option value="<%= p.id %>" data-slug="<%= p.slug %>" data-template="<%= p.template %>" <%= (quoteProduct && quoteProduct.id == p.id) ? 'selected' : '' %>>
+            <%= p.name %>
+          </option>
+        <% }); %>
+      </select>
+    </label>
+    <label>Artwork files <span class="optional">optional · PDF, PNG, JPEG, TIFF, EPS · up to 5 files / 25 MB each</span>
+      <input type="file" name="artwork" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.eps,application/pdf,image/png,image/jpeg,image/tiff,application/postscript" multiple>
+    </label>
+    <label>Project details
+      <textarea name="details" required minlength="12" maxlength="6000" rows="6" placeholder="What are you printing? Include size, quantity, material or intended use if known."></textarea>
+    </label>
+    <div class="commercial-fields" hidden>
+      <label>Quantity
+        <input name="configuration[quantity]" type="number" min="1" inputmode="numeric">
+      </label>
+      <label class="size-field" hidden>Finished size
+        <input name="configuration[finished_size]" maxlength="80" placeholder="For example, A3">
+      </label>
+      <label class="color-field" hidden>Print colors
+        <select name="configuration[print_colors]">
+          <option value="">Select</option>
+          <option>1</option>
+          <option>2</option>
+          <option>4</option>
+        </select>
+      </label>
+      <label class="sheet-field" hidden>Sheet size
+        <select name="configuration[sheet_size]">
+          <option value="">Select</option>
+          <option>A3</option>
+          <option>Other / please specify</option>
+        </select>
+      </label>
+      <fieldset class="surface-fields" hidden>
+        <legend>Surface / application details</legend>
+        <label>Material or surface
+          <input name="configuration[surface]" maxlength="160">
+        </label>
+        <label>Object geometry
+          <input name="configuration[geometry]" maxlength="160">
+        </label>
+        <label>Printable area
+          <input name="configuration[printable_area]" maxlength="120">
+        </label>
+        <label>Intended use
+          <input name="configuration[intended_use]" maxlength="300">
+        </label>
+      </fieldset>
+      <p class="small-note commercial-note"></p>
+    </div>
+    <p class="small-note">Artwork stays in private server storage. Only signed-in admins can download it. Avoid sending confidential personal information.</p>
+    <button class="button" type="submit">Send project brief <span aria-hidden="true">↗</span></button>
+  </form>
+  <aside class="quote-aside">
+    <p class="eyebrow">WHAT HAPPENS NEXT</p>
+    <h2>Review before<br>recommendation.</h2>
+    <ol>
+      <li>We check the request and any production questions.</li>
+      <li>We confirm options and pricing from approved specifications.</li>
+      <li>You receive a clear next step before production begins.</li>
+    </ol>
+  </aside>
+</section>
+
+<%- include('partials/footer') %>

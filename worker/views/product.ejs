@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+
+<section class="product-detail shell">
+  <div class="product-copy">
+    <p class="eyebrow"><a href="/products">SERVICE INDEX</a> / <%= product.family %></p>
+    <h1><%= product.name %><em>.</em></h1>
+    <p class="lead"><%= product.short_description %></p>
+    <div class="product-description">
+      <%- product.description.replace(/\n/g, '<br>') %>
+    </div>
+    <a class="button" href="/quote?product=<%= product.slug %>">Request a quote <span aria-hidden="true">↗</span></a>
+  </div>
+  <aside class="product-aside">
+    <div class="image-placeholder">
+      <span class="eyebrow">PRODUCT IMAGE SLOT</span>
+      <span><%= product.slug %> · 4:5</span>
+    </div>
+    <p class="eyebrow">PROJECT DETAILS</p>
+    <p><%= product.configure || product.typical_uses || 'Custom specification reviewed by HDC' %></p>
+    <% if (product.template === 'B') { %>
+      <div class="review-note">
+        <strong>SURFACE / APPLICATION REVIEW</strong>
+        <p>Share the object, surface, coating, geometry, printable area and intended use. HDC checks the specific combination before confirming a route.</p>
+      </div>
+    <% } %>
+    <p class="small-note">Final options, process suitability and pricing are confirmed by HDC against the approved production profile.</p>
+  </aside>
+</section>
+
+<%- include('partials/footer') %>

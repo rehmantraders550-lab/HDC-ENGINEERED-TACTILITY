@@ -1,0 +1,4 @@
+APP_ENV=development
+ADMIN_EMAIL=replace-with-your-admin-email
+ADMIN_PASSWORD_HASH=replace-with-a-bcrypt-hash
+SESSION_SECRET=replace-with-at-least-32-random-characters

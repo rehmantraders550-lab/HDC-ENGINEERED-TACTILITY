@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+
+<section class="admin-login">
+  <p class="eyebrow">HDC · ORVIA ADMIN</p>
+  <h1>Review desk</h1>
+  <form method="post" action="/admin/login">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Email
+      <input type="email" name="email" required autocomplete="username" placeholder="admin@hdc.com">
+    </label>
+    <label>Password
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button class="button" type="submit">Sign in</button>
+  </form>
+</section>
+
+<%- include('partials/footer') %>
