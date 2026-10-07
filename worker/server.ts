@@ -24,9 +24,10 @@ const MAX_ARTWORK_WRITE_COUNT = 100_000;
 const MAX_ARTWORK_DOWNLOADS = 1_000_000;
 let productSeed: Promise<void> | undefined;
 
-if (!env.SESSION_SECRET || new TextEncoder().encode(env.SESSION_SECRET).length < 32 || !env.ADMIN_EMAIL || !env.ADMIN_PASSWORD_HASH) {
-  throw new Error('Set SESSION_SECRET, ADMIN_EMAIL and ADMIN_PASSWORD_HASH as Worker secrets before running HDC.');
-}
+const hasRequiredSecrets = Boolean(
+  env.SESSION_SECRET && new TextEncoder().encode(env.SESSION_SECRET).length >= 32 &&
+  env.ADMIN_EMAIL && env.ADMIN_PASSWORD_HASH
+);
 
 // View engine setup
 app.set('view engine', 'ejs');
@@ -63,11 +64,21 @@ app.use(async (req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Cloudflare validates a newly uploaded version before binding its secrets.
+// Defer this check until a request so the code version can be deployed, while
+// still failing closed if the live Worker is missing any required secrets.
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  if (!hasRequiredSecrets) {
+    return res.status(503).send('HDC is not configured yet. Set its required Worker secrets and try again.');
+  }
+  next();
+});
+
 // Session setup
 app.use(
   session({
     name: 'hdc_session',
-    secret: env.SESSION_SECRET,
+    secret: env.SESSION_SECRET || 'deployment-validation-placeholder-secret',
     store: new D1SessionStore(env.DB),
     resave: false,
     saveUninitialized: false,
