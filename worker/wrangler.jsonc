@@ -3,7 +3,7 @@
   "name": "hdc-engineered-tactility",
   "main": "dist/server.js",
   "compatibility_date": "2026-10-06",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "allow_eval_during_startup"],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

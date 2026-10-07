@@ -17,6 +17,14 @@ import { R2ArtworkStorage } from './src/lib/r2-artwork-storage.js';
 const app = express();
 const db = new CloudflareStore(env.DB);
 const viewRoot = '/hdc-views';
+
+// Compile trusted, bundled EJS templates during Worker startup. Cloudflare
+// blocks new Function during request handling, so keep every view (including
+// partials) in EJS's cache before the first request is rendered.
+for (const [key, source] of Object.entries(generatedViews)) {
+  const filename = path.join(viewRoot, key);
+  ejs.cache.set(filename, ejs.compile(source, { filename }));
+}
 const MAX_ARTWORK_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_ARTWORK_REQUEST_BYTES = 25 * 1024 * 1024;
 const MAX_ARTWORK_STORAGE_BYTES = 8 * 1024 * 1024 * 1024;
@@ -38,7 +46,7 @@ app.engine('ejs', (filePath, options, callback) => {
       if (source === undefined) throw new Error(`Missing bundled view include: ${includeKey}`);
       return source;
     };
-    callback(null, ejs.render(template, options, { filename: filePath }));
+    callback(null, ejs.render(template, options, { filename: filePath, cache: true }));
   } catch (error) {
     callback(error as Error);
   }
