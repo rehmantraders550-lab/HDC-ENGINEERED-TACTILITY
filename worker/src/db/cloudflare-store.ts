@@ -77,11 +77,52 @@ export class CloudflareStore {
     if (product) statements.push(this.db.prepare(`INSERT INTO quote_items
       (quote_id, product_id, configuration_json, matched_price_pkr, evaluation_json)
       VALUES (?, ?, ?, ?, ?)`).bind(quoteId, product.id, configJson, matchedPrice, evaluation));
+    const files = data.files ?? [];
     for (const file of data.files ?? []) statements.push(this.db.prepare(`INSERT INTO artwork_files
       (quote_id, storage_key, original_name, mime_type, byte_size, created_at)
       VALUES (?, ?, ?, ?, ?, ?)`).bind(quoteId, file.key, file.original, file.mime, file.size, now));
+    if (files.length > 0) {
+      const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+      statements.push(this.db.prepare(`UPDATE artwork_storage_quota
+        SET used_bytes = used_bytes + ?, reserved_bytes = reserved_bytes - ?,
+            stored_files = stored_files + ?, reserved_files = reserved_files - ?
+        WHERE singleton_id = 1 AND reserved_bytes >= ? AND reserved_files >= ?`)
+        .bind(totalBytes, totalBytes, files.length, files.length, totalBytes, files.length));
+    }
     await this.db.batch(statements);
     return { quoteId };
+  }
+
+  async reserveArtworkCapacity(bytes: number, files: number, maxBytes: number, maxWrites: number): Promise<boolean> {
+    const result = await this.db.prepare(`UPDATE artwork_storage_quota
+      SET reserved_bytes = reserved_bytes + ?, reserved_files = reserved_files + ?,
+          write_count = write_count + ?
+      WHERE singleton_id = 1
+        AND used_bytes + reserved_bytes + ? <= ?
+        AND write_count + ? <= ?`)
+      .bind(bytes, files, files, bytes, maxBytes, files, maxWrites).run();
+    return result.meta.changes === 1;
+  }
+
+  async releaseArtworkCapacity(bytes: number, files: number): Promise<void> {
+    await this.db.prepare(`UPDATE artwork_storage_quota
+      SET reserved_bytes = MAX(0, reserved_bytes - ?),
+          reserved_files = MAX(0, reserved_files - ?)
+      WHERE singleton_id = 1`).bind(bytes, files).run();
+  }
+
+  async getArtworkUsage(): Promise<{ used_bytes: number; reserved_bytes: number; stored_files: number; write_count: number; download_count: number }> {
+    const row = await this.db.prepare(`SELECT used_bytes, reserved_bytes, stored_files, write_count, download_count
+      FROM artwork_storage_quota WHERE singleton_id = 1`)
+      .first<{ used_bytes: number; reserved_bytes: number; stored_files: number; write_count: number; download_count: number }>();
+    return row ?? { used_bytes: 0, reserved_bytes: 0, stored_files: 0, write_count: 0, download_count: 0 };
+  }
+
+  async reserveArtworkDownload(maxDownloads: number): Promise<boolean> {
+    const result = await this.db.prepare(`UPDATE artwork_storage_quota
+      SET download_count = download_count + 1
+      WHERE singleton_id = 1 AND download_count < ?`).bind(maxDownloads).run();
+    return result.meta.changes === 1;
   }
 
   async getAdminQuotes(): Promise<QuoteRequest[]> {

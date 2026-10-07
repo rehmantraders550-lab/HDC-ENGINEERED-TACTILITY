@@ -29,6 +29,11 @@ export class R2ArtworkStorage {
     if (!/^[0-9a-f]{48}\.(pdf|png|jpg|tif|eps)$/i.test(key)) return null;
     return await bucket.get(key);
   }
+
+  static async delete(key: string, bucket: R2Bucket): Promise<void> {
+    if (!/^[0-9a-f]{48}\.(pdf|png|jpg|tif|eps)$/i.test(key)) return;
+    await bucket.delete(key);
+  }
 }
 
 function matchesSignature(buffer: Buffer, mime: string): boolean {

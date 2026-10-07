@@ -17,6 +17,11 @@ import { R2ArtworkStorage } from './src/lib/r2-artwork-storage.js';
 const app = express();
 const db = new CloudflareStore(env.DB);
 const viewRoot = '/hdc-views';
+const MAX_ARTWORK_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_ARTWORK_REQUEST_BYTES = 25 * 1024 * 1024;
+const MAX_ARTWORK_STORAGE_BYTES = 8 * 1024 * 1024 * 1024;
+const MAX_ARTWORK_WRITE_COUNT = 100_000;
+const MAX_ARTWORK_DOWNLOADS = 1_000_000;
 let productSeed: Promise<void> | undefined;
 
 if (!env.SESSION_SECRET || new TextEncoder().encode(env.SESSION_SECRET).length < 32 || !env.ADMIN_EMAIL || !env.ADMIN_PASSWORD_HASH) {
@@ -75,10 +80,10 @@ app.use(
   })
 );
 
-// Upload handler via Multer (in-memory buffer, stored securely in ArtworkStorage)
+// Bounded in-memory upload handler. R2 writes are separately capped below.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024, files: 3, fields: 40, parts: 50 }
+  limits: { fileSize: MAX_ARTWORK_FILE_BYTES, files: 3, fields: 40, parts: 50 }
 });
 
 // Middleware for CSRF and Flash messages
@@ -295,37 +300,76 @@ app.post('/quote', upload.array('artwork', 3), async (req: Request, res: Respons
     return res.redirect('/quote');
   }
 
-  // Store artwork files safely
+  // Keep both the per-request upload and cumulative HDC bucket use below
+  // conservative portions of R2's included monthly allowances.
   const storedFiles: Array<{ key: string; original: string; mime: string; size: number }> = [];
   const files = req.files as Express.Multer.File[] | undefined;
+  let reservedBytes = 0;
+  let reservedFileCount = 0;
+  let uploadNotice = '';
   if (files && files.length > 0) {
     if (files.some((file) => !R2ArtworkStorage.validate(file))) {
       req.session.flashError = 'Artwork must be a valid PDF, PNG, JPEG, TIFF or EPS file.';
       return res.redirect('/quote');
     }
-    for (const f of files) {
+    const requestBytes = files.reduce((sum, file) => sum + file.size, 0);
+    if (requestBytes > MAX_ARTWORK_REQUEST_BYTES) {
+      req.session.flashError = 'Please keep artwork uploads to 25 MB total per request. Larger files can be sent to HDC separately.';
+      return res.redirect('/quote');
+    }
+
+    const reserved = await db.reserveArtworkCapacity(
+      requestBytes, files.length, MAX_ARTWORK_STORAGE_BYTES, MAX_ARTWORK_WRITE_COUNT
+    );
+    if (!reserved) {
+      uploadNotice = 'Your quote was received without the artwork files because HDC has reached its secure upload safety limit. Please send artwork to HDC separately.';
+    } else {
+      reservedBytes = requestBytes;
+      reservedFileCount = files.length;
       try {
-        const stored = await R2ArtworkStorage.store(f, env.ARTWORKS);
-        storedFiles.push(stored);
-      } catch (err: any) {
-        req.session.flashError = err.message || 'File upload error.';
-        return res.redirect('/quote');
+        for (const f of files) {
+          const stored = await R2ArtworkStorage.store(f, env.ARTWORKS);
+          storedFiles.push(stored);
+        }
+      } catch {
+        const cleanup = await Promise.allSettled(storedFiles.map((file) => R2ArtworkStorage.delete(file.key, env.ARTWORKS)));
+        // Keep the reservation if cleanup fails, so an orphaned object cannot
+        // make the storage counter understate actual R2 use.
+        if (cleanup.every((result) => result.status === 'fulfilled')) {
+          await db.releaseArtworkCapacity(reservedBytes, reservedFileCount);
+          reservedBytes = 0;
+          reservedFileCount = 0;
+        }
+        storedFiles.length = 0;
+        uploadNotice = 'Your quote was received, but artwork could not be uploaded. Please send the files to HDC separately.';
       }
     }
   }
 
   // Create quote request record
-  await db.createQuoteRequest({
-    customer_name: name,
-    email,
-    phone,
-    details,
-    product_id: productId,
-    configuration,
-    files: storedFiles
-  });
+  try {
+    await db.createQuoteRequest({
+      customer_name: name,
+      email,
+      phone,
+      details,
+      product_id: productId,
+      configuration,
+      files: storedFiles
+    });
+    reservedBytes = 0;
+    reservedFileCount = 0;
+  } catch (error) {
+    if (reservedBytes > 0 || reservedFileCount > 0) {
+      const cleanup = await Promise.allSettled(storedFiles.map((file) => R2ArtworkStorage.delete(file.key, env.ARTWORKS)));
+      if (cleanup.every((result) => result.status === 'fulfilled')) {
+        await db.releaseArtworkCapacity(reservedBytes, reservedFileCount);
+      }
+    }
+    throw error;
+  }
 
-  req.session.flashNotice = 'Your request is in. HDC will review the artwork and production details before confirming a specification or price.';
+  req.session.flashNotice = uploadNotice || 'Your request is in. HDC will review the artwork and production details before confirming a specification or price.';
   res.redirect('/thanks');
 });
 
@@ -388,8 +432,8 @@ app.post('/admin/logout', requireAdmin, (req: Request, res: Response) => {
 
 // Admin Review Desk (GET)
 app.get('/admin', requireAdmin, async (req: Request, res: Response) => {
-  const [quotes, jobs, artworkByQuote, products] = await Promise.all([
-    db.getAdminQuotes(), db.getAdminJobs(), db.getArtworkByQuoteMap(), db.getAdminProducts(),
+  const [quotes, jobs, artworkByQuote, products, artworkUsage] = await Promise.all([
+    db.getAdminQuotes(), db.getAdminJobs(), db.getArtworkByQuoteMap(), db.getAdminProducts(), db.getArtworkUsage(),
   ]);
 
   res.render('admin', {
@@ -397,7 +441,11 @@ app.get('/admin', requireAdmin, async (req: Request, res: Response) => {
     quotes,
     jobs,
     artworkByQuote,
-    products
+    products,
+    artworkUsage,
+    artworkStorageLimitBytes: MAX_ARTWORK_STORAGE_BYTES,
+    artworkFileWriteLimit: MAX_ARTWORK_WRITE_COUNT,
+    artworkDownloadLimit: MAX_ARTWORK_DOWNLOADS
   });
 });
 
@@ -460,6 +508,10 @@ app.get('/admin/artwork', requireAdmin, async (req: Request, res: Response) => {
   const file = await db.getArtworkFile(id);
   if (!file) {
     return res.status(404).send('Not found');
+  }
+
+  if (!await db.reserveArtworkDownload(MAX_ARTWORK_DOWNLOADS)) {
+    return res.status(429).send('HDC has reached its secure artwork download safety limit. Contact the site administrator.');
   }
 
   const object = await R2ArtworkStorage.get(file.storage_key, env.ARTWORKS);
