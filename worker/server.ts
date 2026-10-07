@@ -24,11 +24,6 @@ const MAX_ARTWORK_WRITE_COUNT = 100_000;
 const MAX_ARTWORK_DOWNLOADS = 1_000_000;
 let productSeed: Promise<void> | undefined;
 
-const hasRequiredSecrets = Boolean(
-  env.SESSION_SECRET && new TextEncoder().encode(env.SESSION_SECRET).length >= 32 &&
-  env.ADMIN_EMAIL && env.ADMIN_PASSWORD_HASH
-);
-
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', viewRoot);
@@ -64,21 +59,18 @@ app.use(async (req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Cloudflare validates a newly uploaded version before binding its secrets.
-// Defer this check until a request so the code version can be deployed, while
-// still failing closed if the live Worker is missing any required secrets.
-app.use((_req: Request, res: Response, next: NextFunction) => {
-  if (!hasRequiredSecrets) {
+// Cloudflare may validate a new version before its secrets are available.
+// Read secrets per request, then create the session middleware with the live
+// secret instead of caching a missing value during module startup.
+let sessionMiddleware: ReturnType<typeof session> | undefined;
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const sessionSecret = env.SESSION_SECRET;
+  if (!sessionSecret || new TextEncoder().encode(sessionSecret).length < 32 || !env.ADMIN_EMAIL || !env.ADMIN_PASSWORD_HASH) {
     return res.status(503).send('HDC is not configured yet. Set its required Worker secrets and try again.');
   }
-  next();
-});
-
-// Session setup
-app.use(
-  session({
+  sessionMiddleware ??= session({
     name: 'hdc_session',
-    secret: env.SESSION_SECRET || 'deployment-validation-placeholder-secret',
+    secret: sessionSecret,
     store: new D1SessionStore(env.DB),
     resave: false,
     saveUninitialized: false,
@@ -88,8 +80,9 @@ app.use(
       sameSite: 'lax',
       path: '/'
     }
-  })
-);
+  });
+  sessionMiddleware(req, res, next);
+});
 
 // Bounded in-memory upload handler. R2 writes are separately capped below.
 const upload = multer({
