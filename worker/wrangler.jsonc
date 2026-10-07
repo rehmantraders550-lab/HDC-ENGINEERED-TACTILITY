@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "hdc-engineered-tactility",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "c29d1f04-037d-49da-a7f3-173e742bc31f",
       "migrations_dir": "migrations"
     }
   ],

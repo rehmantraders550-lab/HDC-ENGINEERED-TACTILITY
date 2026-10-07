@@ -15,6 +15,12 @@
     </div>
   </div>
 
+  <div class="review-note">
+    <p class="eyebrow">R2 USAGE SAFETY CHECK</p>
+    <p>HDC bucket tracked use: <strong><%= ((artworkUsage.used_bytes + artworkUsage.reserved_bytes) / 1024 / 1024).toFixed(1) %> MB</strong> of <%= (artworkStorageLimitBytes / 1024 / 1024).toLocaleString() %> MB; <strong><%= artworkUsage.write_count.toLocaleString() %></strong> of <%= artworkFileWriteLimit.toLocaleString() %> reserved upload writes; <strong><%= artworkUsage.download_count.toLocaleString() %></strong> of <%= artworkDownloadLimit.toLocaleString() %> admin downloads.</p>
+    <p class="small-note">This safety counter covers uploads made through HDC. Check Cloudflare’s R2 Metrics and Billable Usage dashboards weekly for account-wide totals.</p>
+  </div>
+
   <h2>Quote requests <span class="count"><%= quotes.length %></span></h2>
   <% if (!quotes || quotes.length === 0) { %>
     <p>No requests yet.</p>
