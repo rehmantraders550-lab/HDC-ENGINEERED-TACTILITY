@@ -1,0 +1,25 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow"><span class="index">01</span> PRINT SERVICE INDEX</p>
+  <h1>Find your<br><em>starting point.</em></h1>
+  <p class="lead">Explore HDC’s approved print services. Each project is reviewed against its own artwork, material and use.</p>
+</section>
+
+<section class="section shell">
+  <% if (products && products.length) { %>
+    <div class="product-grid">
+      <% products.forEach(p => { %>
+        <%- include('partials/product_card', { p }) %>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="empty-state">
+      <h2>Catalogue entries are being reviewed.</h2>
+      <p>Product listings publish only after HDC confirms the production options and service details.</p>
+      <a class="button" href="/quote">Request a project review</a>
+    </div>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,117 @@
+<%- include('partials/header') %>
+
+<section class="hero shell">
+  <div class="hero-copy">
+    <p class="eyebrow"><span class="index">01</span> PRINTING, CONSIDERED</p>
+    <h1>Make the thing<br>they <em>remember.</em></h1>
+    <p class="lead">A considered print partner for objects, packaging and campaigns. Start with the idea; we’ll help shape the production brief.</p>
+    <div class="hero-actions">
+      <a class="button" href="/quote">Tell us about your project <span aria-hidden="true">↗</span></a>
+      <a class="quiet-link" href="/products">Explore print services</a>
+    </div>
+    <div class="hero-note">
+      <span class="rule"></span>
+      <span>Artwork first. Production details confirmed with care.</span>
+    </div>
+  </div>
+  <div class="hero-visual" aria-label="Image slot reserved for an approved HDC print-work photograph">
+    <div class="visual-label">IMAGE SLOT · HERO / 4:5</div>
+    <div class="visual-lines"></div>
+    <div class="visual-caption">
+      <span>01 / MATERIAL STUDY</span>
+      <span>HDC · GUJRAT</span>
+    </div>
+  </div>
+  <div class="hero-index">HDC / 01 — 04</div>
+</section>
+
+<section class="intro-band">
+  <div class="shell band-grid">
+    <p class="eyebrow">A BETTER BRIEF MAKES A BETTER PRINT</p>
+    <p>UV printing and UV DTF are among the processes HDC uses across many products. The right route depends on the actual product, artwork, surface and production profile.</p>
+    <a href="/quote" class="text-link">Bring us the details ↗</a>
+  </div>
+</section>
+
+<section class="section shell service-territories" id="services">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow"><span class="index">02</span> THE SERVICE INDEX</p>
+      <h2>Print for the<br><em>next good idea.</em></h2>
+    </div>
+    <p class="section-lead">Every project has its own material, scale and purpose. Choose a service territory or send HDC a brief to begin a review.</p>
+  </div>
+  <div class="territory-grid">
+    <% Object.keys(siteContent.services).forEach((slug, idx) => { 
+       const group = siteContent.services[slug]; %>
+      <a class="territory-card" href="/services/<%= slug %>">
+        <span class="eyebrow">SERVICE / 0<%= idx + 1 %></span>
+        <h3><%= group.title %></h3>
+        <p><%= group.lead %></p>
+        <span class="text-link">Explore territory ↗</span>
+      </a>
+    <% }); %>
+  </div>
+
+  <% if (products && products.length) { %>
+    <div class="section-heading approved-heading">
+      <div>
+        <p class="eyebrow">CURRENT APPROVED CATALOGUE</p>
+        <h2>Product<br><em>index.</em></h2>
+      </div>
+      <a class="quiet-link" href="/products">Browse every approved product</a>
+    </div>
+    <div class="product-grid">
+      <% products.forEach(p => { %>
+        <%- include('partials/product_card', { p }) %>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="empty-state">
+      <span class="eyebrow">CATALOGUE IN REVIEW</span>
+      <h3>Product options are being verified.</h3>
+      <p>Ask about your project while HDC confirms production details and publishes approved catalogue entries.</p>
+      <a class="text-link" href="/quote">Request a review ↗</a>
+    </div>
+  <% } %>
+</section>
+
+<section class="process-section" id="process">
+  <div class="shell process-grid">
+    <div>
+      <p class="eyebrow"><span class="index">03</span> THE ORVIA METHOD</p>
+      <h2>Good work starts<br>with <em>good questions.</em></h2>
+    </div>
+    <ol class="steps">
+      <li>
+        <span>01</span>
+        <div>
+          <h3>Share the intent</h3>
+          <p>Tell us what you’re making, where it will be used and what you already know.</p>
+        </div>
+      </li>
+      <li>
+        <span>02</span>
+        <div>
+          <h3>Review the details</h3>
+          <p>We check the artwork, material, dimensions and any process information that needs confirmation.</p>
+        </div>
+      </li>
+      <li>
+        <span>03</span>
+        <div>
+          <h3>Confirm the brief</h3>
+          <p>HDC follows up with production questions and a quote based on approved specifications.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="closing shell">
+  <p class="eyebrow">READY WHEN YOU ARE</p>
+  <h2>Let’s get the<br><em>specification right.</em></h2>
+  <a class="button" href="/quote">Start a project <span aria-hidden="true">↗</span></a>
+</section>
+
+<%- include('partials/footer') %>

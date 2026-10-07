@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow"><%= service.kicker %></p>
+  <h1><%= service.title %><em>.</em></h1>
+  <p class="lead"><%= service.lead %></p>
+</section>
+
+<section class="section shell service-detail">
+  <div class="service-manifesto">
+    <p class="eyebrow">START WITH THE JOB</p>
+    <p><%= service.body %></p>
+    <a class="button" href="/quote">Describe your project <span aria-hidden="true">↗</span></a>
+    <a class="quiet-link" href="/surface-lab">Open the Surface Lab</a>
+  </div>
+  <div>
+    <p class="eyebrow">RELATED PRODUCT RECORDS</p>
+    <% if (related && related.length) { %>
+      <div class="product-grid service-products">
+        <% related.forEach(p => { %>
+          <%- include('partials/product_card', { p }) %>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="empty-state">
+        <h2>Production options are in review.</h2>
+        <p>Send HDC the application and material details for a project-specific response.</p>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

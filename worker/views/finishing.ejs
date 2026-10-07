@@ -1,0 +1,34 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow">SERVICE 05 / FINISHING &amp; EMBELLISHMENT</p>
+  <h1>The final surface<br>is part of the <em>design.</em></h1>
+  <p class="lead">Protection, reflection, dimension and final form—selected only after the material, artwork, construction and intended use are understood.</p>
+  <div class="finish-taxonomy">
+    <% siteContent.finishes.forEach(finish => { %>
+      <span><%= finish.label %></span>
+    <% }); %>
+  </div>
+</section>
+
+<section class="section shell finishing-grid">
+  <div>
+    <p class="eyebrow">A FINISH SHOULD EARN ITS PLACE</p>
+    <h2>Make the object<br>work <em>harder.</em></h2>
+    <p class="section-lead">Finishing changes how a piece is handled, read, assembled and experienced. Availability and method remain job-specific.</p>
+    <a class="button" href="/quote">Discuss a finishing brief ↗</a>
+  </div>
+  <div class="finish-list" role="group" aria-label="Finishing intents">
+    <% siteContent.finishes.forEach((finish, i) => { %>
+      <details class="finish-item" <%= i === 0 ? 'open' : '' %>>
+        <summary>
+          <span class="eyebrow">0<%= i + 1 %> / <%= finish.label %></span>
+          <strong><%= finish.title %></strong>
+        </summary>
+        <p><%= finish.description %></p>
+      </details>
+    <% }); %>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

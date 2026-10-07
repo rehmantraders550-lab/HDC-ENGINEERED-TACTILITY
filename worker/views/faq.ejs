@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow">BEFORE YOU SEND A BRIEF</p>
+  <h1>Useful <em>answers.</em></h1>
+  <p class="lead">The production team confirms options against the actual artwork and application.</p>
+</section>
+
+<section class="section shell faq-list">
+  <% siteContent.faqs.forEach(item => { %>
+    <details class="faq-item">
+      <summary><%= item[0] %></summary>
+      <p><%= item[1] %></p>
+    </details>
+  <% }); %>
+</section>
+
+<%- include('partials/footer') %>

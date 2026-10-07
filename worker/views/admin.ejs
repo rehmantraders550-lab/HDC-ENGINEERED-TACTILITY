@@ -1,0 +1,200 @@
+<%- include('partials/header') %>
+
+<section class="admin-page shell">
+  <div class="admin-top">
+    <div>
+      <p class="eyebrow">ORVIA · ADMIN</p>
+      <h1>Review desk</h1>
+    </div>
+    <div style="display: flex; gap: 16px; align-items: center;">
+      <a class="button button-small" href="/admin/export.csv">Export quote CSV</a>
+      <form method="post" action="/admin/logout">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="quiet-button" type="submit">Sign out</button>
+      </form>
+    </div>
+  </div>
+
+  <h2>Quote requests <span class="count"><%= quotes.length %></span></h2>
+  <% if (!quotes || quotes.length === 0) { %>
+    <p>No requests yet.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Received</th>
+            <th>Customer</th>
+            <th>Service</th>
+            <th>Brief &amp; artwork</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% quotes.forEach(q => { %>
+            <tr>
+              <td><%= q.created_at %></td>
+              <td>
+                <%= q.customer_name %><br>
+                <a href="mailto:<%= q.email %>"><%= q.email %></a>
+                <% if (q.phone) { %><br><small><%= q.phone %></small><% } %>
+              </td>
+              <td>
+                <%= q.product_name || 'To be confirmed' %>
+                <% if (q.matched_price_pkr) { %>
+                  <br><strong>Exact matrix: PKR <%= q.matched_price_pkr %></strong>
+                <% } %>
+                <% 
+                  let evaluation = null;
+                  try { evaluation = q.evaluation_json ? JSON.parse(q.evaluation_json) : null; } catch(e){}
+                  if (evaluation && evaluation.base_sheet_price) { 
+                %>
+                  <br><small>A3 base: PKR 2,500 / sheet · total not calculated</small>
+                <% } %>
+              </td>
+              <td>
+                <p style="margin: 0 0 6px;"><%= q.details %></p>
+                <% const files = artworkByQuote[q.id] || []; %>
+                <% files.forEach(file => { %>
+                  <div><a href="/admin/artwork?id=<%= file.id %>">📎 Download <%= file.original_name %></a></div>
+                <% }); %>
+              </td>
+              <td>
+                <form method="post" action="/admin/quote" style="display: inline-flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="id" value="<%= q.id %>">
+                  <select name="status">
+                    <option value="new" <%= q.status === 'new' ? 'selected' : '' %>>New</option>
+                    <option value="in_review" <%= q.status === 'in_review' ? 'selected' : '' %>>In review</option>
+                    <option value="awaiting_customer" <%= q.status === 'awaiting_customer' ? 'selected' : '' %>>Awaiting customer</option>
+                    <option value="quoted" <%= q.status === 'quoted' ? 'selected' : '' %>>Quoted</option>
+                    <option value="closed" <%= q.status === 'closed' ? 'selected' : '' %>>Closed</option>
+                  </select>
+                  <button class="quiet-button" type="submit">Save</button>
+                </form>
+                <% if (q.status === 'quoted') { %>
+                  <form method="post" action="/admin/job">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="quote_id" value="<%= q.id %>">
+                    <button class="button button-small" type="submit">Create job record</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+  <h2>Job records</h2>
+  <% if (!jobs || jobs.length === 0) { %>
+    <p>No quote has been converted into a job record.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Quote</th>
+            <th>Created</th>
+            <th>Job status</th>
+            <th>Update</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% jobs.forEach(job => { %>
+            <tr>
+              <td><strong><%= job.job_reference %></strong></td>
+              <td>#<%= job.quote_id %></td>
+              <td><%= job.created_at %></td>
+              <td><span class="status status-<%= job.status %>"><%= job.status.replace(/_/g, ' ') %></span></td>
+              <td>
+                <form method="post" action="/admin/job/status" style="display: inline-flex; gap: 6px; align-items: center;">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="id" value="<%= job.id %>">
+                  <select name="status">
+                    <% ['awaiting_customer_approval','approved','in_production','quality_check','ready','completed','on_hold','cancelled'].forEach(opt => { %>
+                      <option value="<%= opt %>" <%= job.status === opt ? 'selected' : '' %>><%= opt.replace(/_/g, ' ') %></option>
+                    <% }); %>
+                  </select>
+                  <button class="quiet-button" type="submit">Save</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+  <h2>Catalogue review</h2>
+  <p class="small-note">Entries start as drafts. Confirm copy, configuration, process route and price matrix with production before publishing.</p>
+  <div class="admin-products">
+    <% products.forEach(p => { %>
+      <details class="admin-product">
+        <summary>
+          <span><%= p.name %></span>
+          <span class="status status-<%= p.status %>"><%= p.status %></span>
+        </summary>
+        <form method="post" action="/admin/product">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="id" value="<%= p.id %>">
+          <label>Short description
+            <input name="short_description" value="<%= p.short_description %>">
+          </label>
+          <label>Detailed description
+            <textarea name="description" rows="5"><%= p.description %></textarea>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" name="production_approved" value="1" <%= p.production_approved ? 'checked' : '' %>>
+            Production approval
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" name="public_visibility" value="1" <%= p.public_visibility ? 'checked' : '' %>>
+            Public listing approval
+          </label>
+          <label>Approval note
+            <input name="approval_note" maxlength="1000" value="<%= p.approval_note || '' %>" placeholder="Production profile / owner approval reference">
+          </label>
+          <label>Approved configuration profile
+            <textarea name="profile_json" rows="5" required><%= p.profile_json || '{"approved_fields":[],"compatibility_rules":[],"notes":""}' %></textarea>
+          </label>
+          <p class="small-note">Valid JSON only. Include the approved options, surface compatibility and process rules. Publication requires an approved profile.</p>
+          <label>Publication
+            <select name="status">
+              <option value="draft" <%= p.status === 'draft' ? 'selected' : '' %>>Draft</option>
+              <option value="published" <%= p.status === 'published' ? 'selected' : '' %>>Publish after production approval</option>
+            </select>
+          </label>
+          <button class="button button-small" type="submit">Save review</button>
+        </form>
+      </details>
+    <% }); %>
+  </div>
+
+  <h2>Exact price matrix</h2>
+  <p class="small-note">Add only owner-approved price rows. Configuration JSON must match the submitted configuration exactly. No calculated fallback is used.</p>
+  <form class="price-form" method="post" action="/admin/price">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Approved product
+      <select name="product_id" required>
+        <option value="">Choose a production-approved product</option>
+        <% products.forEach(p => { %>
+          <% if (p.status === 'published' && p.production_approved && p.public_visibility) { %>
+            <option value="<%= p.id %>"><%= p.name %></option>
+          <% } %>
+        <% }); %>
+      </select>
+    </label>
+    <label>Exact configuration JSON
+      <textarea name="configuration_json" rows="4" required placeholder='{"quantity":500,"print_colors":1}'></textarea>
+    </label>
+    <label>Approved amount (PKR)
+      <input type="number" name="price_pkr" min="0.01" step="0.01" required>
+    </label>
+    <button class="button button-small" type="submit">Save exact price row</button>
+  </form>
+</section>
+
+<%- include('partials/footer') %>

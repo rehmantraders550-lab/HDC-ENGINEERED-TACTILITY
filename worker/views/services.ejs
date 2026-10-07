@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+
+<section class="page-intro shell">
+  <p class="eyebrow">HDC / SERVICE TERRITORIES</p>
+  <h1>Four ways<br>to <em>begin.</em></h1>
+  <p class="lead">Start with the outcome you need. Product options and production routes are confirmed against the real job.</p>
+</section>
+
+<section class="section shell">
+  <div class="territory-grid">
+    <% Object.keys(siteContent.services).forEach(slug => { 
+       const group = siteContent.services[slug]; %>
+      <a class="territory-card" href="/services/<%= slug %>">
+        <span class="eyebrow"><%= group.kicker %></span>
+        <h3><%= group.title %></h3>
+        <p><%= group.lead %></p>
+        <span class="text-link">Explore territory ↗</span>
+      </a>
+    <% }); %>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

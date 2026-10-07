@@ -1,0 +1,35 @@
+{
+  "name": "hdc-reloaded",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build && wrangler dev",
+    "build": "node scripts/embed-views.mjs && tsc",
+    "lint": "tsc --noEmit",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply hdc-engineered-tactility --local",
+    "db:migrate:remote": "wrangler d1 migrations apply hdc-engineered-tactility --remote",
+    "hash:admin": "node scripts/hash-admin-password.mjs",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.4",
+    "bcryptjs": "^3.0.3",
+    "ejs": "^7.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "multer": "^2.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "@types/ejs": "^3.1.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.44.0"
+  }
+}
