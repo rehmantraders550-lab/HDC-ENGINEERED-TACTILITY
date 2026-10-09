@@ -26,6 +26,7 @@ for (const [key, source] of Object.entries(generatedViews)) {
   const filename = path.resolve(viewRoot, key);
   const compiled = ejs.compile(source, {
     filename,
+    cache: true,
     includer: (originalPath: string, parsedPath?: string) => {
       let includeFilename = parsedPath ?? path.resolve(path.dirname(filename), originalPath);
       if (!path.extname(includeFilename)) includeFilename += '.ejs';
@@ -35,12 +36,18 @@ for (const [key, source] of Object.entries(generatedViews)) {
       if (includeSource === undefined) {
         throw new Error(`Missing bundled view include: ${includeKey}`);
       }
-      return { filename: includeFilename, template: includeSource };
+      return { filename: includeFilename };
     }
   });
   compiledViews[key] = compiled;
   ejs.cache.set(filename, compiled);
 }
+ejs.fileLoader = (includePath) => {
+  const includeKey = path.relative(viewRoot, includePath).replaceAll('\\', '/');
+  const source = generatedViews[includeKey];
+  if (source === undefined) throw new Error(`Missing bundled view include: ${includeKey}`);
+  return source;
+};
 const MAX_ARTWORK_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_ARTWORK_REQUEST_BYTES = 25 * 1024 * 1024;
 const MAX_ARTWORK_STORAGE_BYTES = 8 * 1024 * 1024 * 1024;
