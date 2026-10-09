@@ -17,13 +17,29 @@ import { R2ArtworkStorage } from './src/lib/r2-artwork-storage.js';
 const app = express();
 const db = new CloudflareStore(env.DB);
 const viewRoot = '/hdc-views';
+const compiledViews: Record<string, ejs.TemplateFunction> = Object.create(null);
 
 // Compile trusted, bundled EJS templates during Worker startup. Cloudflare
-// blocks new Function during request handling, so keep every view (including
-// partials) in EJS's cache before the first request is rendered.
+// blocks new Function during request handling, so invoke these compiled
+// renderers directly and preload each include under its resolved filename.
 for (const [key, source] of Object.entries(generatedViews)) {
-  const filename = path.join(viewRoot, key);
-  ejs.cache.set(filename, ejs.compile(source, { filename }));
+  const filename = path.resolve(viewRoot, key);
+  const compiled = ejs.compile(source, {
+    filename,
+    includer: (originalPath: string, parsedPath?: string) => {
+      let includeFilename = parsedPath ?? path.resolve(path.dirname(filename), originalPath);
+      if (!path.extname(includeFilename)) includeFilename += '.ejs';
+      includeFilename = path.resolve(includeFilename);
+      const includeKey = path.relative(viewRoot, includeFilename).replaceAll('\\', '/');
+      const includeSource = generatedViews[includeKey];
+      if (includeSource === undefined) {
+        throw new Error(`Missing bundled view include: ${includeKey}`);
+      }
+      return { filename: includeFilename, template: includeSource };
+    }
+  });
+  compiledViews[key] = compiled;
+  ejs.cache.set(filename, compiled);
 }
 const MAX_ARTWORK_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_ARTWORK_REQUEST_BYTES = 25 * 1024 * 1024;
@@ -37,16 +53,10 @@ app.set('view engine', 'ejs');
 app.set('views', viewRoot);
 app.engine('ejs', (filePath, options, callback) => {
   const key = path.relative(viewRoot, filePath).replaceAll('\\', '/');
-  const template = generatedViews[key];
-  if (template === undefined) return callback(new Error(`Missing bundled view: ${key}`));
+  const compiled = compiledViews[key];
+  if (compiled === undefined) return callback(new Error(`Missing bundled view: ${key}`));
   try {
-    ejs.fileLoader = (includePath) => {
-      const includeKey = path.relative(viewRoot, includePath).replaceAll('\\', '/');
-      const source = generatedViews[includeKey];
-      if (source === undefined) throw new Error(`Missing bundled view include: ${includeKey}`);
-      return source;
-    };
-    callback(null, ejs.render(template, options, { filename: filePath, cache: true }));
+    callback(null, compiled(options));
   } catch (error) {
     callback(error as Error);
   }
